@@ -78,7 +78,12 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
         torch.save(self.collate([data]), self.processed_paths[0])
 
 
-# def load_sbm_dataset(data_dir:str, snapshot:int):
-#     assert snapshot < len(next(os.walk(data_dir))[1]) and snapshot >= 0
-#     data, _ = torch.load(os.path.join(data_dir, str(snapshot), "StochasticBlockModelBlobDataset", "processed", "data.pt"))
-#     return data
+def load_sbm_dataset(data_dir:str, src:bool, high_dim: bool):
+    subdir = "high_dim" if high_dim else "low_dim"
+    domain = "src" if src else "tgt"
+    dataset_name = "StochasticBlockModelDataset" if high_dim else "StochasticBlockModelBlobDataset"
+    leaf_dir = os.path.join(os.path.join(data_dir, subdir, domain, dataset_name, "processed"))
+    dir_list = os.listdir(leaf_dir)
+    path = os.path.join(leaf_dir, list(filter(lambda fname: "data" in fname, dir_list))[0])
+    data, _ = torch.load(path)
+    return data
