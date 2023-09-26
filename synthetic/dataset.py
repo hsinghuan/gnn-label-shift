@@ -18,7 +18,8 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
             transform: Optional[Callable] = None,
             pre_transform: Optional[Callable] = None,
             flip_y: float = 0.,
-            random_state = 42,
+            random_state: int = 42,
+            train_val_ratio: List = [0.6, 0.2],
             **kwargs,
     ):
         if not isinstance(block_sizes, torch.Tensor):
@@ -32,6 +33,7 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
         self.is_undirected = is_undirected
         self.flip_y = flip_y
         self.random_state = random_state
+        self.train_val_ratio = train_val_ratio
         self.kwargs = {
             'centers': centers,
             'shuffle': False,
@@ -70,7 +72,19 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
         if self.flip_y >= 0.0:
             flip_mask = torch.bernoulli(self.flip_y * torch.ones_like(y)).type(torch.bool)
             y[flip_mask] = torch.randint(num_classes, size=(int(flip_mask.sum().item()),))
-        data = Data(x=x, edge_index=edge_index, y=y)
+
+        indices = torch.randperm(num_samples)
+        train_num = int(num_samples * self.train_val_ratio[0])
+        val_num = int(num_samples * self.train_val_ratio[1])
+        test_num = num_samples - train_num - val_num
+        train_mask = torch.zeros(num_samples, dtype=torch.bool)
+        train_mask[indices[:train_num]] = True
+        val_mask = torch.zeros(num_samples, dtype=torch.bool)
+        val_mask[indices[train_num:train_num+val_num]] = True
+        test_mask = torch.zeros(num_samples, dtype=torch.bool)
+        test_mask[indices[train_num+val_num:train_num+val_num+test_num]] = True
+
+        data = Data(x=x, edge_index=edge_index, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask)
 
         if self.pre_transform is not None:
             data = self.pre_transform(data)
