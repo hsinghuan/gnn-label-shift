@@ -4,13 +4,12 @@ import torch.nn.functional as F
 class MLP(nn.Module):
     def __init__(self, dim_list, dropout_list=None):
         super().__init__()
-        assert len(dropout_list) == len(dim_list) - 2 # # layer = len(dim_list) - 1 and last layer doesn't need dropout
-        self.linears = nn.ModuleList([nn.Linear(dim_list[i], dim_list[i+1]) for i in range(len(dim_list) - 1)])
-        self.dim_list = dim_list
         if dropout_list:
+            assert len(dropout_list) == len(dim_list) - 2 # # layer = len(dim_list) - 1 and last layer doesn't need dropout
             self.dropout_list = dropout_list
         else:
-            self.dropout_list = [0. for _ in range(len(self.linears) - 1)]
+            self.dropout_list = [0. for _ in range(len(dim_list) - 2)]
+        self.linears = nn.ModuleList([nn.Linear(dim_list[i], dim_list[i+1]) for i in range(len(dim_list) - 1)])
 
     def forward(self, x):
         for i, l in enumerate(self.linears):
@@ -20,6 +19,6 @@ class MLP(nn.Module):
         return x
 
 # import torch
-# mlp = MLP(dim_list=[4,2,1], dropout_list=[0.1])
+# mlp = MLP(dim_list=[4,2,1])
 # x = torch.randn(2, 4)
 # print(mlp(x))
