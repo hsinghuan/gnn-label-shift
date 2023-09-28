@@ -17,7 +17,8 @@ class GCN(nn.Module):
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.gcnconvs):
-            x = conv(x, edge_index, edge_weight).relu()
+            x = conv(x, edge_index, edge_weight)
+            x = F.relu(x)
             if i != len(self.gcnconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
@@ -37,7 +38,8 @@ class GraphSAGE(nn.Module):
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.sageconvs):
-            x = conv(x, edge_index, edge_weight).relu()
+            x = conv(x, edge_index, edge_weight)
+            x = F.relu(x)
             if i != len(self.sageconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
@@ -65,7 +67,8 @@ class GAT(nn.Module):
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.gatconvs):
-            x = conv(x, edge_index, edge_weight).relu()
+            x = conv(x, edge_index, edge_weight)
+            x = F.relu(x)
             if i != len(self.gatconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
