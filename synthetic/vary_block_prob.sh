@@ -19,14 +19,86 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 #    done
 #done
 
+## 2 layer
+#for seed in "${seed_list[@]}"; do
+#    for prob in "${inter_edge_prob_list[@]}"; do
+#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#                           --exp_name vary_block_prob \
+#                           --exp_param "$prob"\
+#                           --model gcn \
+#                           --gnn_dim_list 2 64 64 \
+#                           --mlp_dim_list 64 64 2 \
+#                           --gnn_dr_list 0.5 \
+#                           --mlp_dr_list 0.5 \
+#                           --learning_rate 5e-3 \
+#                           --seed "$seed"
+#    done
+#done
 
-#Logistic Regression
+## 3 layer
+#for seed in "${seed_list[@]}"; do
+#    for prob in "${inter_edge_prob_list[@]}"; do
+#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#                           --exp_name vary_block_prob \
+#                           --exp_param "$prob"\
+#                           --model gcn \
+#                           --gnn_dim_list 2 32 32 64 \
+#                           --mlp_dim_list 64 64 2 \
+#                           --gnn_dr_list 0.5 0.5 \
+#                           --mlp_dr_list 0.5 \
+#                           --learning_rate 5e-3 \
+#                           --seed "$seed"
+#    done
+#done
+
+# LinGCN
+## 1 layer
+#for seed in "${seed_list[@]}"; do
+#    for prob in "${inter_edge_prob_list[@]}"; do
+#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#                           --exp_name vary_block_prob \
+#                           --exp_param "$prob"\
+#                           --model lingcn \
+#                           --gnn_dim_list 2 2 \
+#                           --learning_rate 3e-2 \
+#                           --seed "$seed"
+#    done
+#done
+
+## 2 layer
+#for seed in "${seed_list[@]}"; do
+#    for prob in "${inter_edge_prob_list[@]}"; do
+#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#                           --exp_name vary_block_prob \
+#                           --exp_param "$prob"\
+#                           --model lingcn \
+#                           --gnn_dim_list 2 2 2 \
+#                           --learning_rate 3e-2 \
+#                           --seed "$seed"
+#    done
+#done
+
+## 3 layer
 for seed in "${seed_list[@]}"; do
     for prob in "${inter_edge_prob_list[@]}"; do
         python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
                            --exp_name vary_block_prob \
                            --exp_param "$prob"\
-                           --model logreg \
+                           --model lingcn \
+                           --gnn_dim_list 2 2 2 2 \
+                           --learning_rate 3e-2 \
                            --seed "$seed"
     done
 done
+
+
+#Logistic Regression
+#for seed in "${seed_list[@]}"; do
+#    for prob in "${inter_edge_prob_list[@]}"; do
+#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#                           --exp_name vary_block_prob \
+#                           --exp_param "$prob"\
+#                           --model logreg \
+#                           --seed "$seed"
+#    done
+#done

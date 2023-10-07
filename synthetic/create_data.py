@@ -44,7 +44,7 @@ if __name__ == "__main__":
                         [np.cos(5 * np.pi / 4),
                          np.sin(5 * np.pi / 4)]])
     intra_edge_prob = 0.02
-    inter_edge_prob_list = [0.003, 0.006, 0.009, 0.012, 0.015]
+    inter_edge_prob_list = [0.003, 0.0045, 0.006, 0.0075, 0.009,  0.0105, 0.012, 0.0135, 0.015, 0.0165, 0.0180, 0.0195]
     for p in inter_edge_prob_list:
         edge_probs = np.array([[intra_edge_prob, p],
                                [p, intra_edge_prob]])
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     create_sbm_ls(os.path.join(root_dir, "vary_shift"), centers, src_blk_sz=src_blk_sz, src_edge_probs=edge_probs)
 
     # create target dataset
-    tgt_class_0_shift_list = [-0.2, -0.3, -0.4, -0.5, -0.6]
+    tgt_class_0_shift_list = [-0.0, -0.1, -0.2, -0.3, -0.4, -0.5, -0.6]
     for shift in tgt_class_0_shift_list:
         tgt_blk_sz[0] = src_blk_sz[0] + shift * src_blk_sz.sum()
         tgt_blk_sz[1] = src_blk_sz.sum() - tgt_blk_sz[0]
