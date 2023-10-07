@@ -13,8 +13,6 @@ class GCN(nn.Module):
             self.dropout_list = [0. for _ in range(len(dim_list) - 2)]
         self.gcnconvs = nn.ModuleList([GCNConv(dim_list[i], dim_list[i + 1]) for i in range(len(dim_list) - 1)])
 
-
-
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.gcnconvs):
             x = conv(x, edge_index, edge_weight)
@@ -22,6 +20,10 @@ class GCN(nn.Module):
             if i != len(self.gcnconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
+
+    def reset_parameters(self):
+        for conv in self.gcnconvs:
+            conv.reset_parameters()
 
 
 class GraphSAGE(nn.Module):
@@ -43,6 +45,11 @@ class GraphSAGE(nn.Module):
             if i != len(self.sageconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
+
+    def reset_parameters(self):
+        for conv in self.sageconvs:
+            conv.reset_parameters()
+
 
 class GAT(nn.Module):
     def __init__(self, dim_list, heads_list=None, dropout_list=None, gat_dropout_list=None):
@@ -73,6 +80,11 @@ class GAT(nn.Module):
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
 
+    def reset_parameters(self):
+        for conv in self.gatconvs:
+            conv.reset_parameters()
+
+
 class LinearGCN(nn.Module):
     def __init__(self, dim_list):
         assert len(dim_list) >= 2
@@ -83,6 +95,10 @@ class LinearGCN(nn.Module):
         for i, conv in enumerate(self.gcnconvs):
             x = conv(x, edge_index, edge_weight)
         return x
+
+    def reset_parameters(self):
+        for conv in self.gcnconvs:
+            conv.reset_parameters()
 
 # import torch
 # from torch_geometric.data import Data

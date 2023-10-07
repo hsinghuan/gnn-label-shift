@@ -18,6 +18,10 @@ class MLP(nn.Module):
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
         return x
 
+    def reset_parameters(self):
+        for linear in self.linears:
+            linear.reset_parameters()
+
 # import torch
 # mlp = MLP(dim_list=[4,2,1])
 # x = torch.randn(2, 4)
