@@ -1,23 +1,18 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
 
+from .utils import calculate_marginal
 
 class BBSE():
     def __init__(self):
         pass
-
-    def calculate_marginal(self, y, n_classes):
-        mu = np.zeros(shape=(n_classes, 1))
-        for i in range(n_classes):
-            mu[i] = np.sum(y == i)
-        return mu / y.shape[0]
 
     def estimate_importance_weight(self, y_true_src, y_pred_src, y_pred_tgt, n_classes):
         labels = np.arange(n_classes)
         C = confusion_matrix(y_true_src, y_pred_src, labels=labels).T
         C = C / y_true_src.shape[0]
 
-        mu_t = self.calculate_marginal(y_pred_tgt, n_classes)
+        mu_t = calculate_marginal(y_pred_tgt, n_classes)
         lamb = 1.0 / min(y_pred_src.shape[0], y_pred_tgt.shape[0])
 
         I = np.eye(n_classes)
@@ -25,7 +20,7 @@ class BBSE():
         return wt
 
     def estimate_target_dist(self, wt, y_true_src, n_classes):
-        mu_t = self.calculate_marginal(y_true_src, n_classes)
+        mu_t = calculate_marginal(y_true_src, n_classes)
         return wt * mu_t
 
 
