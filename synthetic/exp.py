@@ -6,6 +6,7 @@ import argparse
 import os
 import pickle
 import numpy as np
+from copy import deepcopy
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 from sklearn.linear_model import LogisticRegression
 import torch
@@ -17,11 +18,10 @@ import sys
 sys.path.append("..")
 from model import GCN, LinearGCN, MLP, Model
 from utils import set_model_seed, get_device
-from estimator import BBSE
+from estimator import BBSE, calculate_marginal
 
-def train_epoch(model, data, optimizer, class_weight=None):
-    model.train()
-    out = model(data.x, data.edge_index)
+def train_epoch(model, model_name, data, optimizer, class_weight=None):
+    out = forward(model, model_name, data)
     loss = F.nll_loss(F.log_softmax(out[data.train_mask], dim=1), data.y[data.train_mask], weight=class_weight)
     optimizer.zero_grad()
     loss.backward()
@@ -29,9 +29,8 @@ def train_epoch(model, data, optimizer, class_weight=None):
     return loss.item()
 
 @torch.no_grad()
-def eval_epoch(model, data, test=False, class_weight=None):
-    model.eval()
-    out = model(data.x, data.edge_index)
+def eval_epoch(model, model_name, data, test=False, class_weight=None):
+    out = forward(model, model_name, data, eval=True)
     if test:
         mask = data.test_mask
     else:
@@ -43,10 +42,30 @@ def eval_epoch(model, data, test=False, class_weight=None):
     bacc = balanced_accuracy_score(y_true, y_pred)
     return loss.item(), acc, bacc, y_pred, y_true
 
-def torch_fit(model, data, optimizer, class_weight=None):
+def forward(model, model_name, data, eval=False):
+    if model_name == "mlp":
+        if eval:
+            model.eval()
+            with torch.no_grad():
+                out = model(data.x)
+        else:
+            model.train()
+            out = model(data.x)
+    else:
+        if eval:
+            model.eval()
+            with torch.no_grad():
+                out = model(data.x, data.edge_index)
+        else:
+            model.train()
+            out = model(data.x, data.edge_index)
+    return out
+
+
+def torch_fit(model, model_name, data, optimizer, class_weight=None):
     for e in range(1, args.epochs + 1):
-        train_loss = train_epoch(model, data, optimizer, class_weight=class_weight)
-        val_loss, val_acc, val_bacc, _, _ = eval_epoch(model, data, class_weight=class_weight)
+        train_loss = train_epoch(model, model_name, data, optimizer, class_weight=class_weight)
+        val_loss, val_acc, val_bacc, _, _ = eval_epoch(model, model_name, data, class_weight=class_weight)
         print(f"Epoch: {e} Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_acc} Val Bacc: {val_bacc}")
 
 @torch.no_grad()
@@ -74,25 +93,27 @@ def main(args):
     tgt_homophily = homophily(data_tgt.edge_index, data_tgt.y, method="edge")
 
     if args.model == "logreg":
-        X_src_train, y_src_train_true = data_src.x[data_src.train_mask], data_src.y[data_src.train_mask]
-        X_src_val, y_src_val_true = data_src.x[data_src.val_mask], data_src.y[data_src.val_mask]
-        X_tgt_test, y_tgt_test_true = data_tgt.x[data_tgt.test_mask], data_tgt.y[data_tgt.test_mask]
-        model = LogisticRegression(random_state=args.seed)
+        X_src_train, y_src_train_true = data_src.x[data_src.train_mask].numpy(), data_src.y[data_src.train_mask].numpy()
+        X_src_val, y_src_val_true = data_src.x[data_src.val_mask].numpy(), data_src.y[data_src.val_mask].numpy()
+        X_tgt_test, y_tgt_test_true = data_tgt.x[data_tgt.test_mask].numpy(), data_tgt.y[data_tgt.test_mask].numpy()
         if args.estimator is None:
+            model = LogisticRegression(random_state=args.seed)
             model.fit(X_src_train, y_src_train_true)
         elif args.estimator == "bbse":
-            estimator = BBSE()
-            model.fit(X_src_train, y_src_train_true)
-            y_src_val_pred = model.predict(X_src_val)
+            blackbox = LogisticRegression(random_state=args.seed)
+            blackbox.fit(X_src_train, y_src_train_true)
+            y_src_val_pred = blackbox.predict(X_src_val)
             X_tgt_train = data_tgt.x[data_tgt.train_mask]
-            y_tgt_train_pred = model.predict(X_tgt_train)
+            y_tgt_train_pred = blackbox.predict(X_tgt_train)
+            estimator = BBSE()
             wt = estimator.estimate_importance_weight(y_src_val_true, y_src_val_pred, y_tgt_train_pred, n_classes=2)
-            wt = wt / wt.sum()
+            wt = np.squeeze(wt / wt.sum())
             class_weights = dict()
             for k in range(len(wt)):
                 class_weights[k] = wt[k]
             model = LogisticRegression(random_state=args.seed, class_weight=class_weights)
             model.fit(X_src_train, y_src_train_true)
+
 
         y_src_val_pred = model.predict(X_src_val)
         y_tgt_test_pred = model.predict(X_tgt_test)
@@ -111,36 +132,47 @@ def main(args):
             model = Model(encoder, mlp).to(device)
         elif args.model == "lingcn":
             model = LinearGCN(args.gnn_dim_list).to(device)
+        elif args.model == "mlp":
+            model = MLP(args.mlp_dim_list, dropout_list=args.mlp_dr_list).to(device)
 
         if args.estimator is None:
             optimizer = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
-            torch_fit(model, data_src, optimizer)
+            torch_fit(model, args.model, data_src, optimizer)
         elif args.estimator == "bbse":
-            optimizer = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
-            torch_fit(model, data_src, optimizer)
-            y_src_out = model(data_src.x, data_src.edge_index)
+            blackbox = deepcopy(model)
+            blackbox_optimizer = torch.optim.Adam(params=blackbox.parameters(), lr=args.learning_rate)
+            torch_fit(blackbox, args.model, data_src, blackbox_optimizer)
+            y_src_out = forward(blackbox, args.model, data_src, eval=True)
             y_src_val_pred = torch.argmax(y_src_out[data_src.val_mask], dim=1).cpu().numpy()
-            y_tgt_out = model(data_tgt.x, data_tgt.edge_index)
+            y_tgt_out = forward(blackbox, args.model, data_tgt, eval=True)
             y_tgt_train_pred = torch.argmax(y_tgt_out[data_tgt.train_mask], dim=1).cpu().numpy()
             y_src_val_true = data_src.y[data_src.val_mask].cpu().numpy()
             estimator = BBSE()
             wt = estimator.estimate_importance_weight(y_src_val_true, y_src_val_pred, y_tgt_train_pred, n_classes=2)
-            wt = torch.from_numpy(wt / wt.sum()).float().squeeze().to(device)
-            for name, param in model.named_parameters():
-                if param.requires_grad:
-                    print(name, param.data)
-                    break
-            model.reset_parameters()
-            for name, param in model.named_parameters():
-                if param.requires_grad:
-                    print(name, param.data)
-                    break
+            wt = np.squeeze(wt / wt.sum())
+            wt_tensor = torch.from_numpy(wt).float().to(device)
             optimizer = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
-            torch_fit(model, data_src, optimizer, class_weight=wt)
+            torch_fit(model, args.model, data_src, optimizer, class_weight=wt_tensor)
+        elif args.estimator == "bbse-logreg":
+            X_src_train, y_src_train_true = data_src.x[data_src.train_mask].cpu().numpy(), data_src.y[
+                data_src.train_mask].cpu().numpy()
+            X_src_val, y_src_val_true = data_src.x[data_src.val_mask].cpu().numpy(), data_src.y[data_src.val_mask].cpu().numpy()
+            blackbox = LogisticRegression(random_state=args.seed)
+            estimator = BBSE()
+            blackbox.fit(X_src_train, y_src_train_true)
+            y_src_val_pred = blackbox.predict(X_src_val)
+            X_tgt_train = data_tgt.x[data_tgt.train_mask].cpu().numpy()
+            y_tgt_train_pred = blackbox.predict(X_tgt_train)
+            wt = estimator.estimate_importance_weight(y_src_val_true, y_src_val_pred, y_tgt_train_pred, n_classes=2)
+            wt = np.squeeze(wt / wt.sum())
+            wt_tensor = torch.from_numpy(wt).float().to(device)
+            optimizer = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
+            torch_fit(model, args.model, data_src, optimizer, class_weight=wt_tensor)
 
 
-        src_val_loss, src_val_acc, src_val_bacc, y_src_val_pred, y_src_val_true = eval_epoch(model, data_src)
-        tgt_test_loss, tgt_test_acc, tgt_test_bacc, y_tgt_test_pred, y_tgt_test_true = eval_epoch(model, data_tgt, test=True)
+
+        src_val_loss, src_val_acc, src_val_bacc, y_src_val_pred, y_src_val_true = eval_epoch(model, args.model, data_src)
+        tgt_test_loss, tgt_test_acc, tgt_test_bacc, y_tgt_test_pred, y_tgt_test_true = eval_epoch(model, args.model, data_tgt, test=True)
 
 
 
@@ -163,9 +195,19 @@ def main(args):
                    "tgt_pred_dist": tgt_pred_dist
                    }
 
+    if args.estimator is not None:
+        y_src_marginal_true = calculate_marginal(y_src_val_true, n_classes=2)
+        y_tgt_train_true = data_tgt.y[data_tgt.train_mask].cpu().numpy()
+        y_tgt_marginal_true = calculate_marginal(y_tgt_train_true, n_classes=2)
+        wt_true = (y_tgt_marginal_true / y_src_marginal_true)
+        wt_true = np.squeeze(wt_true / wt_true.sum())
+        print(f"wt: {wt} wt true: {wt_true}")
+        result_dict["wt"] = wt
+        result_dict["wt_true"] = wt_true
+        result_dict["est_err"] = np.linalg.norm(wt - wt_true)
 
     exp_config =  args.exp_name + "_" + args.estimator if args.estimator else args.exp_name
-    layer_config = str(len(args.gnn_dim_list) - 1) + "layer" if args.model != "logreg" else ""
+    layer_config = str(len(args.gnn_dim_list) - 1) + "layer" if args.model not in ["logreg", "mlp"] else ""
     result_subdir = os.path.join(args.result_dir, exp_config, args.model, layer_config, str(args.seed))
     os.makedirs(result_subdir, exist_ok=True)
     result_filename = args.exp_param + ".pkl"

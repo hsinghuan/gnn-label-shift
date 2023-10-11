@@ -7,7 +7,7 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 ## 1 layer
 #for seed in "${seed_list[@]}"; do
 #    for prob in "${inter_edge_prob_list[@]}"; do
-#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#        python exp.py --data_dir ~/data/sbm_ls/ \
 #                           --exp_name vary_block_prob \
 #                           --exp_param "$prob"\
 #                           --model gcn \
@@ -22,7 +22,7 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 ## 2 layer
 #for seed in "${seed_list[@]}"; do
 #    for prob in "${inter_edge_prob_list[@]}"; do
-#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#        python exp.py --data_dir ~/data/sbm_ls/ \
 #                           --exp_name vary_block_prob \
 #                           --exp_param "$prob"\
 #                           --model gcn \
@@ -38,7 +38,7 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 ## 3 layer
 #for seed in "${seed_list[@]}"; do
 #    for prob in "${inter_edge_prob_list[@]}"; do
-#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#        python exp.py --data_dir ~/data/sbm_ls/ \
 #                           --exp_name vary_block_prob \
 #                           --exp_param "$prob"\
 #                           --model gcn \
@@ -55,7 +55,7 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 ## 1 layer
 #for seed in "${seed_list[@]}"; do
 #    for prob in "${inter_edge_prob_list[@]}"; do
-#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#        python exp.py --data_dir ~/data/sbm_ls/ \
 #                           --exp_name vary_block_prob \
 #                           --exp_param "$prob"\
 #                           --model lingcn \
@@ -68,7 +68,7 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 ## 2 layer
 #for seed in "${seed_list[@]}"; do
 #    for prob in "${inter_edge_prob_list[@]}"; do
-#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#        python exp.py --data_dir ~/data/sbm_ls/ \
 #                           --exp_name vary_block_prob \
 #                           --exp_param "$prob"\
 #                           --model lingcn \
@@ -81,7 +81,7 @@ inter_edge_prob_list=("0.003" "0.0045" "0.006" "0.0075" "0.009" "0.0105" "0.012"
 ## 3 layer
 for seed in "${seed_list[@]}"; do
     for prob in "${inter_edge_prob_list[@]}"; do
-        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+        python exp.py --data_dir ~/data/sbm_ls/ \
                            --exp_name vary_block_prob \
                            --exp_param "$prob"\
                            --model lingcn \
@@ -95,7 +95,7 @@ done
 #Logistic Regression
 #for seed in "${seed_list[@]}"; do
 #    for prob in "${inter_edge_prob_list[@]}"; do
-#        python wo_adapt_exp.py --data_dir ~/data/sbm_ls/ \
+#        python exp.py --data_dir ~/data/sbm_ls/ \
 #                           --exp_name vary_block_prob \
 #                           --exp_param "$prob"\
 #                           --model logreg \
