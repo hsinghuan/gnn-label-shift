@@ -1,2 +1,2 @@
-from .bbse import BBSE
+from .bbse import BBSE, BBSELR, BBSETorch
 from .utils import calculate_marginal
