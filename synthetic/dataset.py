@@ -14,6 +14,7 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
             edge_probs: Union[List[List[float]], Tensor],
             num_channels: Optional[int] = None,
             centers=None,
+            cluster_std=1.0,
             is_undirected: bool = True,
             transform: Optional[Callable] = None,
             pre_transform: Optional[Callable] = None,
@@ -36,6 +37,7 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
         self.train_val_ratio = train_val_ratio
         self.kwargs = {
             'centers': centers,
+            'cluster_std': cluster_std,
             'shuffle': False,
         }
         self.kwargs.update(kwargs)
