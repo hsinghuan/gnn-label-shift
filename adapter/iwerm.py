@@ -7,14 +7,14 @@ from torch_utils import torch_fit
 
 class IWERM:
     def __init__(self, w, model, device):
-        self.w = w
+        self.w = torch.from_numpy(w).float().to(device)
         self.device = device
         self._set_model(model)
+        self.best_run_name = None
 
     def adapt(self, data_src, args):
-        wt_tensor = torch.from_numpy(self.w).float().to(self.device)
         optimizer = torch.optim.Adam(params=self.model.parameters(), lr=args.model_learning_rate)
-        torch_fit(self.model, args.model, data_src, optimizer, args.model_epochs, class_weight=wt_tensor)
+        torch_fit(self.model, args.model, data_src, optimizer, args.model_epochs, class_weight=self.w)
 
     def _set_model(self, model):
         self.model = deepcopy(model)
