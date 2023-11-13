@@ -1,6 +1,11 @@
+import os
 import numpy as np
+import argparse
 import torch
 from torch_geometric.data import Data
+from torch_geometric.utils import to_undirected
+from ogb.nodeproppred import PygNodePropPredDataset
+
 
 def take_second(element):
     return element[1]
@@ -60,3 +65,24 @@ def temp_partition_arxiv(data, year_bound, proportion=1.0):
     data_new.val_mask = torch.logical_and(node_years_new >= year_bound[1], node_years_new < year_bound[2])
 
     return data_new
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="prepare partitioned ogbn-arxiv dataset")
+    parser.add_argument("--data_dir", type=str, help="which method for label shift adaptation")
+    args = parser.parse_args()
+
+    dataset = PygNodePropPredDataset(name="ogbn-arxiv", root=args.data_dir)
+    data = dataset[0]
+    data.edge_index = to_undirected(data.edge_index, num_nodes=len(data.y))
+    print("Begin partition source data")
+    data_src = temp_partition_arxiv(data, [0, 2012, 2013])  # src train: ~ 2011, src val: 2012
+    torch.save(data_src, os.path.join(args.data_dir, "ogbn-arxiv", "label_shift", "data_src.pt"))
+    print("Begin partition target data")
+    data_tgt = temp_partition_arxiv(data, [2013, 2019, 2020])  # tgt train: 2013 ~ 2018, tgt val: 2019
+    torch.save(data_tgt, os.path.join(args.data_dir, "ogbn-arxiv", "label_shift", "data_tgt.pt"))
+    print("Begin partition target test data")
+    test_data_tgt = temp_partition_arxiv(data, [0, 2020, 2021])  # tgt test: 2020
+    torch.save(test_data_tgt, os.path.join(args.data_dir, "ogbn-arxiv", "label_shift", "test_data_tgt.pt"))
+
+
+    
