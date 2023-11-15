@@ -12,10 +12,12 @@ class GCN(nn.Module):
         else:
             self.dropout_list = [0. for _ in range(len(dim_list) - 2)]
         self.gcnconvs = nn.ModuleList([GCNConv(dim_list[i], dim_list[i + 1]) for i in range(len(dim_list) - 1)])
+        self.bns = nn.ModuleList([nn.BatchNorm1d(dim) for dim in dim_list[1:]])
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.gcnconvs):
             x = conv(x, edge_index, edge_weight)
+            x = self.bns[i](x)
             x = F.relu(x)
             if i != len(self.gcnconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
@@ -24,6 +26,8 @@ class GCN(nn.Module):
     def reset_parameters(self):
         for conv in self.gcnconvs:
             conv.reset_parameters()
+        for bn in self.bns:
+            bn.reset_running_stats()
 
 
 class GraphSAGE(nn.Module):
@@ -36,11 +40,12 @@ class GraphSAGE(nn.Module):
         else:
             self.dropout_list = [0. for _ in range(len(dim_list) - 2)]
         self.sageconvs = nn.ModuleList([SAGEConv(dim_list[i], dim_list[i + 1]) for i in range(len(dim_list) - 1)])
-
+        self.bns = nn.ModuleList([nn.BatchNorm1d(dim) for dim in dim_list[1:]])
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.sageconvs):
             x = conv(x, edge_index, edge_weight)
+            x = self.bns[i](x)
             x = F.relu(x)
             if i != len(self.sageconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
@@ -49,6 +54,8 @@ class GraphSAGE(nn.Module):
     def reset_parameters(self):
         for conv in self.sageconvs:
             conv.reset_parameters()
+        for bn in self.bns:
+            bn.reset_running_stats()
 
 
 class GAT(nn.Module):
@@ -71,10 +78,12 @@ class GAT(nn.Module):
             self.gat_dropout_list = [0. for _ in range(len(dim_list) - 1)]
 
         self.gatconvs = nn.ModuleList([GATConv(dim_list[i] * self.heads_list[i], dim_list[i+1], self.heads_list[i+1], dropout=self.gat_dropout_list[i]) for i in range(len(dim_list) - 1)])
+        self.bns = nn.ModuleList([nn.BatchNorm1d(dim) for dim in dim_list[1:]])
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.gatconvs):
             x = conv(x, edge_index, edge_weight)
+            x = self.bns[i](x)
             x = F.relu(x)
             if i != len(self.gatconvs) - 1:
                 x = F.dropout(x, p=self.dropout_list[i], training=self.training)
@@ -83,6 +92,8 @@ class GAT(nn.Module):
     def reset_parameters(self):
         for conv in self.gatconvs:
             conv.reset_parameters()
+        for bn in self.bns:
+            bn.reset_running_stats()
 
 
 class LinearGCN(nn.Module):
