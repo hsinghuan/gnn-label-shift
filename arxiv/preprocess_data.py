@@ -63,6 +63,7 @@ def temp_partition_arxiv(data, year_bound, proportion=1.0):
     node_years_new = torch.tensor([node_years[node[0]] for node in nodes_new])
     data_new.train_mask = torch.logical_and(node_years_new >= year_bound[0], node_years_new < year_bound[1])
     data_new.val_mask = torch.logical_and(node_years_new >= year_bound[1], node_years_new < year_bound[2])
+    data_new.node_years = node_years_new
 
     return data_new
 
@@ -74,15 +75,18 @@ if __name__ == "__main__":
     dataset = PygNodePropPredDataset(name="ogbn-arxiv", root=args.data_dir)
     data = dataset[0]
     data.edge_index = to_undirected(data.edge_index, num_nodes=len(data.y))
+
+    ls_subdir = os.path.join(args.data_dir, "ogbn_arxiv", "label_shift")
+    os.makedirs(ls_subdir, exist_ok=True)
     print("Begin partition source data")
-    data_src = temp_partition_arxiv(data, [0, 2012, 2013])  # src train: ~ 2011, src val: 2012
-    torch.save(data_src, os.path.join(args.data_dir, "ogbn-arxiv", "label_shift", "data_src.pt"))
+    data_src = temp_partition_arxiv(data, [0, 2014, 2015])  # src train: ~ 2011, src val: 2012
+    torch.save(data_src, os.path.join(ls_subdir, "data_src.pt"))
     print("Begin partition target data")
-    data_tgt = temp_partition_arxiv(data, [2013, 2019, 2020])  # tgt train: 2013 ~ 2018, tgt val: 2019
-    torch.save(data_tgt, os.path.join(args.data_dir, "ogbn-arxiv", "label_shift", "data_tgt.pt"))
+    data_tgt = temp_partition_arxiv(data, [2018, 2019, 2020])  # tgt train: 2013 ~ 2018, tgt val: 2019
+    torch.save(data_tgt, os.path.join(ls_subdir, "data_tgt.pt"))
     print("Begin partition target test data")
     test_data_tgt = temp_partition_arxiv(data, [0, 2020, 2021])  # tgt test: 2020
-    torch.save(test_data_tgt, os.path.join(args.data_dir, "ogbn-arxiv", "label_shift", "test_data_tgt.pt"))
+    test_data_tgt.test_mask = test_data_tgt.val_mask
+    torch.save(test_data_tgt, os.path.join(ls_subdir, "test_data_tgt.pt"))
 
 
-    

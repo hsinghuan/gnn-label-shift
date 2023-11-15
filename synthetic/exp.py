@@ -165,7 +165,7 @@ def main(args):
         result_dict["normalized_est_err"] = np.linalg.norm(wt / wt.sum() - wt_true / wt_true.sum())
 
     # result_filename = file_name + "_" + (adapter.best_run_name if adapter.best_run_name else "result")
-    result_filename = adapter.best_run_name if adapter.best_run_name else "result"
+    result_filename = adapter.best_run_name if args.model != "logreg" and adapter.best_run_name else "result"
     pickle.dump(result_dict, open(os.path.join(result_subdir, result_filename + ".pkl"), 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":

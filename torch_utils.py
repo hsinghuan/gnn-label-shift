@@ -1,8 +1,11 @@
+import numpy as np
+from copy import deepcopy
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import torch
 import torch.nn.functional as F
 
 from model import GCN, LinearGCN, GAT, MLP, Model
+
 
 def train_epoch(model, model_name, data, optimizer, class_weight=None):
     out = forward(model, model_name, data)
@@ -47,12 +50,24 @@ def forward(model, model_name, data, eval=False):
     return out
 
 
-def torch_fit(model, model_name, data, optimizer, epochs, class_weight=None):
+def torch_fit(model, model_name, data, optimizer, epochs, class_weight=None, patience=20):
+    best_val_acc = -np.inf
+    staleness = 0
     for e in range(1, epochs + 1):
         train_loss = train_epoch(model, model_name, data, optimizer, class_weight=class_weight)
         val_loss, val_acc, val_bacc, _, _, _ = eval_epoch(model, model_name, data, class_weight=class_weight)
         print(f"Epoch: {e} Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_acc} Val Bacc: {val_bacc}")
+        if val_acc > best_val_acc:
+            best_model = deepcopy(model)
+            best_val_acc = val_acc
+            staleness = 0
+        else:
+            staleness += 1
 
+        if staleness > patience:
+            break
+
+    return best_model
 
 def create_model(model_name, device, hyper_param):
     if model_name == "mlp":
